@@ -1,6 +1,6 @@
-# Voice of Callisto
+# Organum
 
-A real-time pipe organ synthesizer built with Python. Voice of Callisto generates sound entirely from scratch using additive synthesis with physically-modeled pipe characteristics — no samples, no soundfonts. Every note you hear is computed in real-time from sine waves, harmonic profiles, and acoustic simulation.
+A real-time pipe organ synthesizer built with Python. Organum generates sound entirely from scratch using additive synthesis with physically-modeled pipe characteristics — no samples, no soundfonts. Every note you hear is computed in real-time from sine waves, harmonic profiles, and acoustic simulation.
 
 ---
 
@@ -46,8 +46,8 @@ A real-time pipe organ synthesizer built with Python. Voice of Callisto generate
 ## Installation
 
 ```bash
-git clone https://github.com/youruser/voice-of-callisto.git
-cd voice-of-callisto
+git clone https://github.com/youruser/organum.git
+cd organum
 uv sync
 ```
 
@@ -177,7 +177,7 @@ Drawbars represent harmonics in Hammond organ convention:
 ## Project Structure
 
 ```
-voice-of-callisto/
+organum/
 ├── main.py                   Entry point — wires up engine, audio, MIDI, GUI
 ├── engine/
 │   ├── audio.py              sounddevice OutputStream wrapper (44100 Hz, 4096 frames/block)

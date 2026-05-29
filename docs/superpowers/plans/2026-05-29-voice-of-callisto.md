@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development (recommended) or executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Port the Royal Albert Hall stop layout with Manual/Pedal division into the optimized Python engine.
+**Goal:** Port the Royal Albert Hall stop layout with Manual/Pedal division into the optimized Python organum engine.
 
 **Architecture:** 12-stop Willis specification with division-aware routing, layered on top of the existing wavetable additive synthesis engine. Six targeted optimizations reduce per-block render time to prevent audio overflow.
 

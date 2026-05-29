@@ -1,6 +1,6 @@
 # Voice of Callisto — Design Spec
 
-Voice of Callisto: an optimized, division-aware pipe organ
+Voice of Callisto is v2 of Organum: an optimized, division-aware pipe organ
 synthesizer built on the existing Python wavetable engine.
 
 ## Goals

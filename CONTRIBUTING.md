@@ -1,10 +1,10 @@
-# Contributing to Voice of Callisto
+# Contributing to Organum
 
-This guide explains how to work on the Voice of Callisto pipe organ synthesizer project.
+This guide explains how to work on the Organum pipe organ synthesizer project.
 
 ## Project Overview
 
-Voice of Callisto is a real-time pipe organ synthesizer using additive synthesis with physically-modeled pipe characteristics. It consists of:
+Organum is a real-time pipe organ synthesizer using additive synthesis with physically-modeled pipe characteristics. It consists of:
 
 - **Engine** (`engine/`): Audio processing, synthesis, effects, MIDI playback
 - **GUI** (`gui/`): PyQt6-based user interface
@@ -266,7 +266,7 @@ When adding new organ stops:
 ```bash
 # Clone repository
 git clone <repository-url>
-cd voice-of-callisto
+cd organum
 
 # Install dependencies (creates .venv/)
 uv sync
