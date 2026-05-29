@@ -14,6 +14,7 @@ from typing import Any
 import numpy as np
 
 from engine.organ import OrganVoice
+from engine.tunings import TUNINGS, DEFAULT_TUNING
 from stops.profiles import STOP_DEFS, STOP_REGISTRY, HarmonicProfile, StopDefinition, DRAWBAR_HARMONICS
 
 _TANH_LUT_SIZE = 4096
@@ -29,6 +30,10 @@ class EventType(Enum):
     STOP_TOGGLE = "stop_toggle"
     ROOM_PRESET = "room_preset"
     SWELL_CHANGE = "swell_change"
+    SUSTAIN_PEDAL = "sustain_pedal"
+    STOP_VOLUME = "stop_volume"
+    TRANSPOSE_SET = "transpose_set"
+    TUNING_SET = "tuning_set"
 
 
 @dataclass
@@ -399,15 +404,15 @@ class Mixer:
         #     0.25, # 1'
         # ]
         self._drawbar_values: list[float] = [
-            0.85,
+            0.65,
             1.0,
-            0.55,
+            0.45,
             0.80,
             0.30,
-            0.40,
-            0.12,
+            0.50,
+            0.20,
+            0.15,
             0.10,
-            0.05,
         ]
 
         self._active_stops: dict[str, HarmonicProfile] = {
@@ -419,6 +424,20 @@ class Mixer:
         }
 
         self._swell_values: list[float] = [1.0, 1.0, 1.0, 1.0]
+
+        # Sustain pedal state
+        self._sustain_active = False
+        self._sustained_notes: set[int] = set()
+
+        # Per-stop volume multipliers (default 1.0 for all)
+        self._stop_volumes: dict[str, float] = {}
+
+        # Transpose (semitones, -12 to +12)
+        self._transpose = 0
+
+        # Alternate tuning
+        self._tuning_name: str = DEFAULT_TUNING
+        self._freq_table: np.ndarray | None = None
 
         self._master_volume = 0.26
         self._current_room_preset = DEFAULT_ROOM_PRESET
@@ -455,7 +474,7 @@ class Mixer:
                 break
 
             if event.type == EventType.NOTE_ON:
-                note = event.data
+                note = max(0, min(127, event.data + self._transpose))
                 is_manual = note >= 36
                 is_pedal = note <= 53
 
@@ -507,6 +526,7 @@ class Mixer:
                     self._voices[note] = OrganVoice(
                         note, self.sample_rate, stop_defs=normal_defs,
                         suppress_transients=rapid_restrike,
+                        freq_table=self._freq_table,
                     )
 
                 # Mutation stops get their own separate voices at shifted pitch
@@ -529,20 +549,23 @@ class Mixer:
                                 self.sample_rate,
                                 stop_defs=[sd],
                                 suppress_transients=rapid_restrike,
+                                freq_table=self._freq_table,
                             )
                             self._mutation_keys.setdefault(note, []).append(mut_key)
 
             elif event.type == EventType.NOTE_OFF:
-                note = event.data
+                note = max(0, min(127, event.data + self._transpose))
                 self._note_release_samples[note] = self._sample_clock
-                if note in self._voices:
-                    self._voices[note].note_off()
-                # Also release any mutation voices for this note
-                if note in self._mutation_keys:
-                    for mk in self._mutation_keys[note]:
-                        if mk in self._voices:
-                            self._voices[mk].note_off()
-                    del self._mutation_keys[note]
+                if self._sustain_active:
+                    self._sustained_notes.add(note)
+                else:
+                    if note in self._voices:
+                        self._voices[note].note_off()
+                    if note in self._mutation_keys:
+                        for mk in self._mutation_keys[note]:
+                            if mk in self._voices:
+                                self._voices[mk].note_off()
+                        del self._mutation_keys[note]
 
             elif event.type == EventType.DRAWBAR_CHANGE:
                 idx, value = event.data
@@ -593,6 +616,40 @@ class Mixer:
                     self._room_resonance._phase_inc2 = preset.resonance_freqs[1] * self._room_resonance._lut_size / self.sample_rate
                     self._room_resonance._phase_inc3 = preset.resonance_freqs[2] * self._room_resonance._lut_size / self.sample_rate
 
+            elif event.type == EventType.SUSTAIN_PEDAL:
+                sustain_on: bool = event.data
+                if sustain_on:
+                    self._sustain_active = True
+                else:
+                    self._sustain_active = False
+                    # Release all sustained notes
+                    for snote in self._sustained_notes:
+                        if snote in self._voices:
+                            self._voices[snote].note_off()
+                        if snote in self._mutation_keys:
+                            for mk in self._mutation_keys[snote]:
+                                if mk in self._voices:
+                                    self._voices[mk].note_off()
+                            del self._mutation_keys[snote]
+                    self._sustained_notes.clear()
+
+            elif event.type == EventType.STOP_VOLUME:
+                stop_name, vol = event.data
+                self._stop_volumes[stop_name] = vol
+
+            elif event.type == EventType.TRANSPOSE_SET:
+                self._transpose = max(-12, min(12, event.data))
+
+            elif event.type == EventType.TUNING_SET:
+                name = event.data
+                tuning_table = TUNINGS.get(name)
+                if tuning_table is not None:
+                    self._tuning_name = name
+                    self._freq_table = tuning_table
+                    # Clear all voices so they re-create with new frequencies
+                    for voice in self._voices.values():
+                        voice.note_off()
+
     def render(self, num_frames: int) -> np.ndarray:
         """Render stereo audio: returns (num_frames, 2) array."""
         self._process_events()
@@ -607,11 +664,12 @@ class Mixer:
         if stop_profiles:
             # Pre-compute harmonic amplitudes once per block (same for all voices)
             harmonic_amps = np.zeros(len(DRAWBAR_HARMONICS), dtype=np.float32)
-            for profile in stop_profiles:
+            for sname, profile in self._active_stops.items():
+                vol = self._stop_volumes.get(sname, 1.0)
                 for i, h in enumerate(DRAWBAR_HARMONICS):
                     h_key = h if h < 1 else int(round(h))
                     if h_key in profile:
-                        harmonic_amps[i] += profile[h_key] * self._drawbar_values[i]
+                        harmonic_amps[i] += profile[h_key] * self._drawbar_values[i] * vol
             if len(stop_profiles) > 1:
                 max_amp = harmonic_amps.max()
                 if max_amp > 1.0:
@@ -744,6 +802,18 @@ class Mixer:
     def drawbar_values(self) -> list[float]:
         return list(self._drawbar_values)
 
+    def set_sustain(self, on: bool) -> None:
+        self.event_queue.put(AudioEvent(EventType.SUSTAIN_PEDAL, on))
+
+    def set_stop_volume(self, stop_name: str, volume: float) -> None:
+        self.event_queue.put(AudioEvent(EventType.STOP_VOLUME, (stop_name, volume)))
+
+    def set_transpose(self, semitones: int) -> None:
+        self.event_queue.put(AudioEvent(EventType.TRANSPOSE_SET, semitones))
+
+    def set_tuning(self, name: str) -> None:
+        self.event_queue.put(AudioEvent(EventType.TUNING_SET, name))
+
     @property
     def swell_values(self) -> list[float]:
         return list(self._swell_values)
@@ -751,3 +821,15 @@ class Mixer:
     @property
     def current_room_preset(self) -> str:
         return self._current_room_preset
+
+    @property
+    def current_tuning(self) -> str:
+        return self._tuning_name
+
+    @property
+    def current_transpose(self) -> int:
+        return self._transpose
+
+    @property
+    def is_sustain_active(self) -> bool:
+        return self._sustain_active

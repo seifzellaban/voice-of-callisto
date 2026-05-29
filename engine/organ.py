@@ -5,8 +5,10 @@ action noise, and per-pipe randomization for a living, breathing sound.
 """
 
 import numpy as np
+import numpy as np
 from engine.oscillator import Oscillator
 from engine.envelope import Envelope
+from engine.tunings import TUNINGS, DEFAULT_TUNING
 from stops.profiles import StopDefinition, DRAWBAR_HARMONICS, STOP_DEFS
 
 # MIDI note number → frequency (A4 = 440 Hz, equal temperament)
@@ -51,9 +53,12 @@ class OrganVoice:
         sample_rate: int = 44100,
         stop_defs: list[StopDefinition] | None = None,
         suppress_transients: bool = False,
+        freq_table: np.ndarray | None = None,
     ) -> None:
         self.note = note
-        self._fundamental = midi_to_freq(note)
+        self._fundamental = (
+            freq_table[note] if freq_table is not None else midi_to_freq(note)
+        )
         self._sample_rate = sample_rate
 
         # Blend voicing parameters from active stops
@@ -201,16 +206,15 @@ class OrganVoice:
             osc_a = self._oscillators_a[i]
             osc_b = self._oscillators_b[i]
             
-            # Boost lower frequencies to make them sound grander;
-            # gently turn down high frequencies so they don't pierce
+            # Gentle bass weight and subtle treble clarity — defined, not muffled
             if osc_a is not None:
                 freq = osc_a._frequency
-                if freq < 500.0:
-                    normalised = (500.0 - freq) / 500.0
-                    bass_boost = 1.0 + 3.0 * normalised**1.0 + 2.0 * max(0.0, normalised - 0.3)**0.8
+                if freq < 200.0:
+                    normalised = (200.0 - freq) / 200.0
+                    bass_boost = 1.0 + 1.2 * normalised
                     amp *= bass_boost
-                elif freq > 600.0:
-                    high_vol = max(0.10, 1.0 - 0.70 * ((freq - 600.0) / (freq + 800.0)))
+                elif freq > 1000.0:
+                    high_vol = max(0.60, 1.0 - 0.35 * ((freq - 1000.0) / (freq + 1000.0)))
                     amp *= high_vol
 
             if swell_bands is not None:
