@@ -14,6 +14,7 @@ from typing import Any
 import numpy as np
 
 from engine.organ import OrganVoice
+from engine.recorder import Recorder
 from engine.tunings import TUNINGS, DEFAULT_TUNING
 from stops.profiles import STOP_DEFS, STOP_REGISTRY, HarmonicProfile, StopDefinition, DRAWBAR_HARMONICS
 
@@ -390,6 +391,9 @@ class Mixer:
         self.event_queue: SimpleQueue[AudioEvent] = SimpleQueue()
 
         self._voices: dict[int, OrganVoice] = {}
+
+        # Audio recorder (WAV/MP3 capture)
+        self.recorder = Recorder(sample_rate)
 
         # FULL CATHEDRAL REGISTRATION
         # self._drawbar_values: list[float] = [
