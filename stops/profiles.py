@@ -142,6 +142,96 @@ MIXTURE_IV_DEF = StopDefinition(
     is_mutation=True, pitch_shift=1.0, division="manual",
 )
 
+# ── New Foundation stops (8' and 4' colors) ──────────────────────────
+
+GEIGEN_DIAPASON_8_DEF = StopDefinition(
+    harmonics={0.5: 0.40, 1: 1.0, 2: 0.55, 3: 0.32, 4: 0.18, 5: 0.10, 6: 0.05, 7: 0.03},
+    waveform="string", chorus_detune=0.8, vibrato_depth=0.6,
+    chiff_amount=0.012, chiff_ms=12.0, wind_noise=0.004, attack_ms=45.0, release_ms=700.0,
+    division="manual",
+)
+
+FLUTE_HARMONIQUE_8_DEF = StopDefinition(
+    harmonics={0.5: 0.30, 1: 1.0, 3: 0.20, 5: 0.06},
+    waveform="flute", chorus_detune=0.5, vibrato_depth=0.5, vibrato_rate=5.2,
+    chiff_amount=0.008, chiff_ms=15.0, wind_noise=0.003, attack_ms=55.0, release_ms=800.0,
+    division="manual",
+)
+
+VIOLA_4_DEF = StopDefinition(
+    harmonics={2: 1.0, 3: 0.50, 4: 0.30, 5: 0.15, 6: 0.08},
+    waveform="string", chorus_detune=1.2, vibrato_depth=0.8, vibrato_rate=6.0,
+    chiff_amount=0.010, chiff_ms=8.0, wind_noise=0.003, attack_ms=35.0, release_ms=650.0,
+    division="manual",
+)
+
+OPEN_FLUTE_4_DEF = StopDefinition(
+    harmonics={2: 1.0, 3: 0.15, 5: 0.04},
+    waveform="flute", chorus_detune=0.4, vibrato_depth=0.4, vibrato_rate=5.0,
+    chiff_amount=0.006, chiff_ms=14.0, wind_noise=0.003, attack_ms=50.0, release_ms=750.0,
+    division="manual",
+)
+
+# ── New Reed stops ──────────────────────────────────────────────────
+
+OBOE_8_DEF = StopDefinition(
+    harmonics={0.5: 0.40, 1: 1.0, 2: 0.65, 3: 0.40, 4: 0.25, 5: 0.15, 6: 0.08, 7: 0.04},
+    waveform="reed", chorus_detune=1.2, vibrato_depth=0.5, vibrato_rate=5.5,
+    chiff_amount=0.006, chiff_ms=6.0, wind_noise=0.002, attack_ms=40.0, release_ms=500.0,
+    division="manual",
+)
+
+CLARINET_8_DEF = StopDefinition(
+    harmonics={0.5: 0.20, 1: 1.0, 2: 0.30, 3: 0.60, 4: 0.20, 5: 0.45, 6: 0.15},
+    waveform="reed", chorus_detune=1.0, vibrato_depth=0.6, vibrato_rate=5.0,
+    chiff_amount=0.004, chiff_ms=8.0, wind_noise=0.003, attack_ms=35.0, release_ms=600.0,
+    division="manual",
+)
+
+BASSOON_16_DEF = StopDefinition(
+    harmonics={0.5: 1.0, 1: 0.80, 2: 0.55, 3: 0.35, 4: 0.20, 5: 0.10},
+    waveform="reed", chorus_detune=0.8, vibrato_depth=0.3, vibrato_rate=4.8,
+    chiff_amount=0.005, chiff_ms=10.0, wind_noise=0.003, attack_ms=50.0, release_ms=900.0,
+    division="manual",
+)
+
+TROMPETTE_HARMONIQUE_8_DEF = StopDefinition(
+    harmonics={0.5: 0.60, 1: 1.0, 2: 0.90, 3: 0.80, 4: 0.70, 5: 0.60, 6: 0.50, 7: 0.40},
+    waveform="reed", chorus_detune=1.6, vibrato_depth=0.5, vibrato_rate=5.8,
+    chiff_amount=0.007, chiff_ms=4.0, wind_noise=0.002, attack_ms=18.0, release_ms=450.0,
+    division="manual",
+)
+
+# ── New Pedal stops ─────────────────────────────────────────────────
+
+VIONE_16_PEDAL_DEF = StopDefinition(
+    harmonics={0.5: 1.0, 1: 0.70, 2: 0.40, 3: 0.22, 4: 0.12, 5: 0.06},
+    waveform="string", chorus_detune=0.6, vibrato_depth=0.3,
+    chiff_amount=0.010, chiff_ms=14.0, wind_noise=0.004, attack_ms=55.0, release_ms=850.0,
+    division="pedal",
+)
+
+BOURDON_8_PEDAL_DEF = StopDefinition(
+    harmonics={0.5: 0.50, 1: 1.0, 3: 0.12, 5: 0.03},
+    waveform="flute", chorus_detune=0.3, vibrato_depth=0.25,
+    chiff_amount=0.008, chiff_ms=18.0, wind_noise=0.004, attack_ms=60.0, release_ms=950.0,
+    division="pedal",
+)
+
+OCTAVE_4_PEDAL_DEF = StopDefinition(
+    harmonics={2: 1.0, 3: 0.40, 4: 0.20, 5: 0.08},
+    waveform="principal", chorus_detune=0.8, vibrato_depth=0.5,
+    chiff_amount=0.011, chiff_ms=10.0, wind_noise=0.003, attack_ms=45.0, release_ms=700.0,
+    division="pedal",
+)
+
+TROMBONE_16_PEDAL_DEF = StopDefinition(
+    harmonics={0.5: 1.0, 1: 0.95, 2: 0.85, 3: 0.72, 4: 0.60, 5: 0.48},
+    waveform="reed", chorus_detune=1.4, vibrato_depth=0.4, vibrato_rate=5.5,
+    chiff_amount=0.005, chiff_ms=5.0, wind_noise=0.002, attack_ms=20.0, release_ms=550.0,
+    division="pedal",
+)
+
 TREMULANT_DEF = StopDefinition(
     harmonics={}, waveform="sine", is_tremulant=True,
     tremulant_depth=0.12, tremulant_rate=5.8, tremulant_pitch_cents=18.0,
@@ -155,16 +245,28 @@ TREMULANT_DEF = StopDefinition(
 STOP_DEFS: dict[str, StopDefinition] = {
     "Double Open Diapason 16'": DOUBLE_OPEN_DIAPASON_16_DEF,
     "Open Diapason 8'": OPEN_DIAPASON_8_DEF,
+    "Geigen Diapason 8'": GEIGEN_DIAPASON_8_DEF,
+    "Flûte Harmonique 8'": FLUTE_HARMONIQUE_8_DEF,
     "Principal 4'": PRINCIPAL_4_DEF,
+    "Viola 4'": VIOLA_4_DEF,
+    "Open Flute 4'": OPEN_FLUTE_4_DEF,
     "Fifteenth 2'": FIFTEENTH_2_DEF,
     "Mixture IV": MIXTURE_IV_DEF,
     "Double Trumpet 16'": DOUBLE_TRUMPET_16_DEF,
+    "Bassoon 16'": BASSOON_16_DEF,
     "Trumpet 8'": TRUMPET_8_DEF,
+    "Oboe 8'": OBOE_8_DEF,
+    "Clarinet 8'": CLARINET_8_DEF,
+    "Trompette Harmonique 8'": TROMPETTE_HARMONIQUE_8_DEF,
     "Clarion 4'": CLARION_4_DEF,
     "Double Open Bass 32'": DOUBLE_OPEN_BASS_32_DEF,
     "Open Diapason 16'": OPEN_DIAPASON_16_PEDAL_DEF,
+    "Violone 16'": VIONE_16_PEDAL_DEF,
     "Principal 8'": PRINCIPAL_8_PEDAL_DEF,
+    "Bourdon 8'": BOURDON_8_PEDAL_DEF,
+    "Octave 4'": OCTAVE_4_PEDAL_DEF,
     "Ophicleide 16'": OPHICLEIDE_16_DEF,
+    "Trombone 16'": TROMBONE_16_PEDAL_DEF,
     "Tremulant": TREMULANT_DEF,
 }
 
