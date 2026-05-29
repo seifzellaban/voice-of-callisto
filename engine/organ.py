@@ -42,8 +42,8 @@ class OrganVoice:
     )
 
     # Tracker action click — the mechanical sound of the key valve opening
-    TRACKER_CLICK_MS = 2.0
-    TRACKER_CLICK_LEVEL = 0.002
+    TRACKER_CLICK_MS = 1.5
+    TRACKER_CLICK_LEVEL = 0.001
 
     def __init__(
         self,
@@ -62,7 +62,7 @@ class OrganVoice:
             chorus_detune = sum(s.chorus_detune for s in stop_defs) / n
             vibrato_depth = sum(s.vibrato_depth for s in stop_defs) / n
             vibrato_rate = sum(s.vibrato_rate for s in stop_defs) / n
-            self._chiff_amount = sum(s.chiff_amount for s in stop_defs) / n * 0.25
+            self._chiff_amount = sum(s.chiff_amount for s in stop_defs) / n * 0.15
             chiff_ms = sum(s.chiff_ms for s in stop_defs) / n
             self._noise_level = sum(s.wind_noise for s in stop_defs) / n
             attack_ms = sum(s.attack_ms for s in stop_defs) / n
@@ -180,6 +180,7 @@ class OrganVoice:
         self,
         num_frames: int,
         harmonic_amps: np.ndarray,
+        swell_bands: list[float] | None = None,
     ) -> np.ndarray:
         """Render audio with chorus, chiff, tracker action, and wind noise.
 
@@ -187,6 +188,8 @@ class OrganVoice:
             num_frames: Number of audio frames to render.
             harmonic_amps: Pre-computed amplitude per drawbar harmonic
                 (computed once per block in the mixer).
+            swell_bands: Four frequency band volume multipliers (0–1).
+                [bass <200Hz, mid-low 200-600Hz, mid-high 600-2000Hz, treble >2000Hz]
         """
 
         # Sum oscillator pairs (chorus)
@@ -198,12 +201,28 @@ class OrganVoice:
             osc_a = self._oscillators_a[i]
             osc_b = self._oscillators_b[i]
             
-            # Boost lower frequencies to make them sound grander
+            # Boost lower frequencies to make them sound grander;
+            # gently turn down high frequencies so they don't pierce
             if osc_a is not None:
                 freq = osc_a._frequency
-                if freq < 260.0:
-                    bass_boost = 1.0 + 0.7 * ((260.0 - freq) / 260.0)**1.5
+                if freq < 500.0:
+                    normalised = (500.0 - freq) / 500.0
+                    bass_boost = 1.0 + 3.0 * normalised**1.0 + 2.0 * max(0.0, normalised - 0.3)**0.8
                     amp *= bass_boost
+                elif freq > 600.0:
+                    high_vol = max(0.10, 1.0 - 0.70 * ((freq - 600.0) / (freq + 800.0)))
+                    amp *= high_vol
+
+            if swell_bands is not None:
+                freq = osc_a._frequency if osc_a is not None else 0.0
+                if freq < 200.0:
+                    amp *= swell_bands[0]
+                elif freq < 600.0:
+                    amp *= swell_bands[1]
+                elif freq < 2000.0:
+                    amp *= swell_bands[2]
+                else:
+                    amp *= swell_bands[3]
 
             if osc_a is not None:
                 output += osc_a.render(num_frames) * (amp * 0.55)
@@ -266,7 +285,7 @@ class OrganVoice:
             self._wind_noise_pos = end_npos % _WIND_NOISE_SIZE
 
             if self._fundamental > 800:
-                output += buf * (self._noise_level * 1.3)
+                output += buf * (self._noise_level * 0.7)
             else:
                 output += buf * self._noise_level
 

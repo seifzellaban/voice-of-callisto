@@ -15,23 +15,28 @@ Controls:
   RCtrl + ←/→  Move right hand only
 """
 
-from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QApplication,
-)
-from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtGui import QFont, QKeyEvent
+from PyQt6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
-from engine.mixer import Mixer, ROOM_PRESETS, DEFAULT_ROOM_PRESET
 from engine.midi_player import MidiPlayer
-from stops.profiles import STOP_DEFS, DRAWBAR_LABELS
-from gui.stop_panel import StopPanel
+from engine.mixer import DEFAULT_ROOM_PRESET, ROOM_PRESETS, Mixer
+from gui.drawbar_presets import DrawbarPresetPanel
 from gui.drawbars import DrawbarPanel
 from gui.keyboard import PianoKeyboard
 from gui.midi_panel import MidiPlayerPanel
 from gui.room_panel import RoomPresetPanel
-from gui.drawbar_presets import DrawbarPresetPanel
-
+from gui.stop_panel import StopPanel
+from gui.swell import SwellPanel
+from stops.profiles import DRAWBAR_LABELS, STOP_DEFS
 
 NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
@@ -46,14 +51,55 @@ def _note_name(midi: int) -> str:
 STOP_GROUPS: dict[int, tuple[str, list[str]]] = {
     0: ("All Stops", list(STOP_DEFS.keys())),
     1: ("Foundation 8'", ["Open Diapason 8'"]),
-    2: ("Great Plenum", ["Open Diapason 8'", "Principal 4'", "Fifteenth 2'", "Mixture IV"]),
-    3: ("Full Plenum", ["Double Open Diapason 16'", "Open Diapason 8'", "Principal 4'", "Fifteenth 2'", "Mixture IV"]),
+    2: (
+        "Great Plenum",
+        ["Open Diapason 8'", "Principal 4'", "Fifteenth 2'", "Mixture IV"],
+    ),
+    3: (
+        "Full Plenum",
+        [
+            "Double Open Diapason 16'",
+            "Open Diapason 8'",
+            "Principal 4'",
+            "Fifteenth 2'",
+            "Mixture IV",
+        ],
+    ),
     4: ("Reeds", ["Double Trumpet 16'", "Trumpet 8'", "Clarion 4'"]),
     5: ("Solo Trumpet", ["Trumpet 8'"]),
     6: ("Pedal Foundation", ["Open Diapason 16'", "Principal 8'"]),
-    7: ("Pedal Full", ["Double Open Bass 32'", "Open Diapason 16'", "Principal 8'", "Ophicleide 16'"]),
-    8: ("Full Organ", ["Double Open Diapason 16'", "Open Diapason 8'", "Principal 4'", "Fifteenth 2'", "Mixture IV", "Double Trumpet 16'", "Trumpet 8'", "Clarion 4'", "Double Open Bass 32'", "Open Diapason 16'", "Principal 8'", "Ophicleide 16'"]),
-    9: ("Festal", ["Open Diapason 8'", "Principal 4'", "Trumpet 8'", "Open Diapason 16'", "Principal 8'", "Tremulant"]),
+    7: (
+        "Pedal Full",
+        ["Double Open Bass 32'", "Open Diapason 16'", "Principal 8'", "Ophicleide 16'"],
+    ),
+    8: (
+        "Full Organ",
+        [
+            "Double Open Diapason 16'",
+            "Open Diapason 8'",
+            "Principal 4'",
+            "Fifteenth 2'",
+            "Mixture IV",
+            "Double Trumpet 16'",
+            "Trumpet 8'",
+            "Clarion 4'",
+            "Double Open Bass 32'",
+            "Open Diapason 16'",
+            "Principal 8'",
+            "Ophicleide 16'",
+        ],
+    ),
+    9: (
+        "Festal",
+        [
+            "Open Diapason 8'",
+            "Principal 4'",
+            "Trumpet 8'",
+            "Open Diapason 16'",
+            "Principal 8'",
+            "Tremulant",
+        ],
+    ),
 }
 
 
@@ -85,7 +131,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(16, 10, 16, 14)
 
         # ── Title ───────────────────────────────────────────────────
-        title = QLabel("𝕺𝖗𝖌𝖆𝖓𝖚𝖒")
+        title = QLabel("𝖁𝖔𝖎𝖈𝖊 𝖔𝖋 𝕮𝖆𝖑𝖑𝖎𝖘𝖙𝖔")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setFont(QFont("Serif", 26, QFont.Weight.Bold))
         title.setStyleSheet("color: #d4a574; margin-bottom: 2px;")
@@ -102,9 +148,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(subtitle)
 
         # ── Stop panel ──────────────────────────────────────────────
-        self._stop_panel = StopPanel(
-            list(STOP_DEFS.keys()), mixer.active_stop_names
-        )
+        self._stop_panel = StopPanel(list(STOP_DEFS.keys()), mixer.active_stop_names)
         self._stop_panel.stop_toggled.connect(self._on_stop_toggle)
         layout.addWidget(self._stop_panel)
 
@@ -121,6 +165,11 @@ class MainWindow(QMainWindow):
         self._drawbar_panel = DrawbarPanel(DRAWBAR_LABELS, mixer.drawbar_values)
         self._drawbar_panel.drawbar_changed.connect(self._on_drawbar_change)
         drawbar_row.addWidget(self._drawbar_panel)
+
+        # Swell EQ — right of drawbars
+        self._swell_panel = SwellPanel(mixer.swell_values)
+        self._swell_panel.swell_changed.connect(self._on_swell_change)
+        drawbar_row.addWidget(self._swell_panel)
 
         # Room presets — right of drawbars
         self._room_panel = RoomPresetPanel(
@@ -204,6 +253,7 @@ class MainWindow(QMainWindow):
         # ── MIDI note visualization timer ───────────────────────────
         # Poll MIDI player's active notes and highlight them on keyboard
         from PyQt6.QtCore import QTimer
+
         self._midi_viz_timer = QTimer()
         self._midi_viz_timer.timeout.connect(self._update_midi_visualization)
         self._midi_viz_timer.start(50)  # 20fps — smooth enough for visual feedback
@@ -302,6 +352,9 @@ class MainWindow(QMainWindow):
     def _on_drawbar_preset(self, name: str, values: list) -> None:
         """Apply a drawbar preset."""
         self._drawbar_panel.set_values(values)
+
+    def _on_swell_change(self, index: int, value: float) -> None:
+        self._mixer.set_swell(index, value)
 
     def _on_room_selected(self, preset_name: str) -> None:
         """Apply a room preset."""

@@ -28,6 +28,7 @@ class EventType(Enum):
     DRAWBAR_CHANGE = "drawbar_change"
     STOP_TOGGLE = "stop_toggle"
     ROOM_PRESET = "room_preset"
+    SWELL_CHANGE = "swell_change"
 
 
 @dataclass
@@ -219,12 +220,12 @@ class RoomPresetParams:
 ROOM_PRESETS: dict[str, RoomPresetParams] = {
     "Grand Cathedral": RoomPresetParams(
         name="Grand Cathedral",
-        room_size_l=1.05, room_size_r=1.10,
-        wet=0.42, feedback=0.89,
-        damping_l=0.25, damping_r=0.27,
-        predelay_l=24.0, predelay_r=32.0,
-        resonance_level=0.025,
-        resonance_freqs=(24.0, 36.0, 52.0),
+        room_size_l=1.15, room_size_r=1.20,
+        wet=0.48, feedback=0.92,
+        damping_l=0.20, damping_r=0.22,
+        predelay_l=32.0, predelay_r=40.0,
+        resonance_level=0.045,
+        resonance_freqs=(18.0, 28.0, 40.0),
     ),
     "Stone Chapel": RoomPresetParams(
         name="Stone Chapel",
@@ -398,15 +399,15 @@ class Mixer:
         #     0.25, # 1'
         # ]
         self._drawbar_values: list[float] = [
-            0.75,
+            0.85,
             1.0,
-            0.625,
-            0.875,
-            0.375,
-            0.625,
-            0.25,
-            0.25,
-            0.125,
+            0.55,
+            0.80,
+            0.30,
+            0.40,
+            0.12,
+            0.10,
+            0.05,
         ]
 
         self._active_stops: dict[str, HarmonicProfile] = {
@@ -416,6 +417,8 @@ class Mixer:
         self._active_stop_defs: dict[str, StopDefinition] = {
             "Open Diapason 8'": STOP_DEFS["Open Diapason 8'"],
         }
+
+        self._swell_values: list[float] = [1.0, 1.0, 1.0, 1.0]
 
         self._master_volume = 0.26
         self._current_room_preset = DEFAULT_ROOM_PRESET
@@ -546,6 +549,11 @@ class Mixer:
                 if 0 <= idx < 9:
                     self._drawbar_values[idx] = value
 
+            elif event.type == EventType.SWELL_CHANGE:
+                idx, value = event.data
+                if 0 <= idx < 4:
+                    self._swell_values[idx] = value
+
             elif event.type == EventType.STOP_TOGGLE:
                 stop_name = event.data
                 stop_def = STOP_DEFS.get(stop_name)
@@ -601,9 +609,9 @@ class Mixer:
             harmonic_amps = np.zeros(len(DRAWBAR_HARMONICS), dtype=np.float32)
             for profile in stop_profiles:
                 for i, h in enumerate(DRAWBAR_HARMONICS):
-                    h_int = int(round(h)) if h >= 1 else 1
-                    if h_int in profile:
-                        harmonic_amps[i] += profile[h_int] * self._drawbar_values[i]
+                    h_key = h if h < 1 else int(round(h))
+                    if h_key in profile:
+                        harmonic_amps[i] += profile[h_key] * self._drawbar_values[i]
             if len(stop_profiles) > 1:
                 max_amp = harmonic_amps.max()
                 if max_amp > 1.0:
@@ -612,7 +620,7 @@ class Mixer:
             dead_notes: list[int] = []
             for note, voice in self._voices.items():
                 if voice.is_active:
-                    mono += voice.render(num_frames, harmonic_amps)
+                    mono += voice.render(num_frames, harmonic_amps, self._swell_values)
                     has_voices = True
                     active_count += 1
                 else:
@@ -716,6 +724,9 @@ class Mixer:
     def set_drawbar(self, index: int, value: float) -> None:
         self.event_queue.put(AudioEvent(EventType.DRAWBAR_CHANGE, (index, value)))
 
+    def set_swell(self, index: int, value: float) -> None:
+        self.event_queue.put(AudioEvent(EventType.SWELL_CHANGE, (index, value)))
+
     def toggle_stop(self, stop_name: str) -> None:
         self.event_queue.put(AudioEvent(EventType.STOP_TOGGLE, stop_name))
 
@@ -732,6 +743,10 @@ class Mixer:
     @property
     def drawbar_values(self) -> list[float]:
         return list(self._drawbar_values)
+
+    @property
+    def swell_values(self) -> list[float]:
+        return list(self._swell_values)
 
     @property
     def current_room_preset(self) -> str:

@@ -16,9 +16,9 @@ def _default_harmonic_amps() -> np.ndarray:
     amps = np.zeros(len(DRAWBAR_HARMONICS), dtype=np.float32)
     for profile in stop_profiles:
         for i, h in enumerate(DRAWBAR_HARMONICS):
-            h_int = int(round(h)) if h >= 1 else 1
-            if h_int in profile:
-                amps[i] += profile[h_int] * drawbar_values[i]
+            h_key = h if h < 1 else int(round(h))
+            if h_key in profile:
+                amps[i] += profile[h_key] * drawbar_values[i]
     max_amp = amps.max()
     if max_amp > 1.0:
         amps /= max_amp
