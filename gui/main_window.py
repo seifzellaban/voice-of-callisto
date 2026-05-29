@@ -19,6 +19,7 @@ from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtGui import QFont, QKeyEvent
 from PyQt6.QtWidgets import (
     QApplication,
+    QComboBox,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -29,10 +30,12 @@ from PyQt6.QtWidgets import (
 
 from engine.midi_player import MidiPlayer
 from engine.mixer import DEFAULT_ROOM_PRESET, ROOM_PRESETS, Mixer
+from engine.tunings import TUNINGS
 from gui.drawbar_presets import DrawbarPresetPanel
 from gui.drawbars import DrawbarPanel
 from gui.keyboard import PianoKeyboard
 from gui.midi_panel import MidiPlayerPanel
+from gui.recorder import RecorderPanel
 from gui.room_panel import RoomPresetPanel
 from gui.stop_panel import StopPanel
 from gui.swell import SwellPanel
@@ -150,6 +153,7 @@ class MainWindow(QMainWindow):
         # ── Stop panel ──────────────────────────────────────────────
         self._stop_panel = StopPanel(list(STOP_DEFS.keys()), mixer.active_stop_names)
         self._stop_panel.stop_toggled.connect(self._on_stop_toggle)
+        self._stop_panel.stop_volume_changed.connect(self._on_stop_volume)
         layout.addWidget(self._stop_panel)
 
         # ── Drawbar presets + Drawbars + Room presets ────────────────
@@ -185,6 +189,92 @@ class MainWindow(QMainWindow):
         # ── MIDI Player ─────────────────────────────────────────────
         self._midi_panel = MidiPlayerPanel(midi_player)
         layout.addWidget(self._midi_panel)
+
+        # ── Recorder ─────────────────────────────────────────────────
+        self._recorder_panel = RecorderPanel(mixer.recorder)
+        layout.addWidget(self._recorder_panel)
+
+        # ── Utility row: sustain + transpose + tuning ───────────────
+        util_row = QHBoxLayout()
+        util_row.setSpacing(16)
+
+        # Sustain toggle
+        self._sustain_btn = QPushButton("Sustain")
+        self._sustain_btn.setCheckable(True)
+        self._sustain_btn.setChecked(mixer.is_sustain_active)
+        self._sustain_btn.setMinimumWidth(80)
+        self._sustain_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2a1a1a;
+                color: #884040;
+                border: 2px solid #5a2a2a;
+                border-radius: 6px;
+                font-size: 12px; font-weight: bold; padding: 6px 12px;
+            }
+            QPushButton:checked {
+                background-color: #8b2222;
+                color: #ffffff;
+                border: 2px solid #ff6347;
+            }
+            QPushButton:hover { background-color: #3a2020; }
+        """)
+        self._sustain_btn.toggled.connect(self._on_sustain_toggle)
+        util_row.addWidget(self._sustain_btn)
+
+        # Transpose controls
+        transp_label = QLabel("Transpose:")
+        transp_label.setStyleSheet("color: #c0b0a0; font-size: 12px; font-weight: bold;")
+        util_row.addWidget(transp_label)
+
+        self._transp_down = QPushButton("−")
+        self._transp_down.setFixedSize(28, 28)
+        self._transp_down.setStyleSheet("""
+            QPushButton { background: #3a2a1a; color: #c0b0a0; border: 1px solid #5a4a3a;
+                          border-radius: 4px; font-size: 16px; font-weight: bold; }
+            QPushButton:hover { background: #4a3a2a; }
+        """)
+        self._transp_down.clicked.connect(self._on_transpose_down)
+        util_row.addWidget(self._transp_down)
+
+        self._transp_label = QLabel("0")
+        self._transp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._transp_label.setFixedWidth(30)
+        self._transp_label.setStyleSheet("color: #ffd700; font-size: 14px; font-weight: bold;")
+        util_row.addWidget(self._transp_label)
+
+        self._transp_up = QPushButton("+")
+        self._transp_up.setFixedSize(28, 28)
+        self._transp_up.setStyleSheet("""
+            QPushButton { background: #3a2a1a; color: #c0b0a0; border: 1px solid #5a4a3a;
+                          border-radius: 4px; font-size: 16px; font-weight: bold; }
+            QPushButton:hover { background: #4a3a2a; }
+        """)
+        self._transp_up.clicked.connect(self._on_transpose_up)
+        util_row.addWidget(self._transp_up)
+
+        # Tuning selector
+        tuning_label = QLabel("Tuning:")
+        tuning_label.setStyleSheet("color: #c0b0a0; font-size: 12px; font-weight: bold;")
+        util_row.addWidget(tuning_label)
+
+        self._tuning_combo = QComboBox()
+        self._tuning_combo.addItems(list(TUNINGS.keys()))
+        self._tuning_combo.setCurrentText(mixer.current_tuning)
+        self._tuning_combo.setStyleSheet("""
+            QComboBox {
+                background: #3a2a1a; color: #e0d4c0; border: 1px solid #5a4a3a;
+                border-radius: 4px; padding: 4px 8px; font-size: 12px;
+            }
+            QComboBox::drop-down { border: none; }
+            QComboBox QAbstractItemView {
+                background: #2a1a0a; color: #e0d4c0; selection-background-color: #5a3a2a;
+            }
+        """)
+        self._tuning_combo.currentTextChanged.connect(self._on_tuning_changed)
+        util_row.addWidget(self._tuning_combo)
+
+        util_row.addStretch()
+        layout.addLayout(util_row)
 
         # ── Status row: octave + stop group + drawbar info ──────────
         status_row = QHBoxLayout()
@@ -303,6 +393,22 @@ class MainWindow(QMainWindow):
     def _on_note_off(self, note: int) -> None:
         self._mixer.note_off(note)
 
+    def _on_sustain_toggle(self, on: bool) -> None:
+        self._mixer.set_sustain(on)
+
+    def _on_transpose_up(self) -> None:
+        new_val = max(-12, min(12, self._mixer.current_transpose + 1))
+        self._mixer.set_transpose(new_val)
+        self._transp_label.setText(str(new_val))
+
+    def _on_transpose_down(self) -> None:
+        new_val = max(-12, min(12, self._mixer.current_transpose - 1))
+        self._mixer.set_transpose(new_val)
+        self._transp_label.setText(str(new_val))
+
+    def _on_tuning_changed(self, name: str) -> None:
+        self._mixer.set_tuning(name)
+
     def _on_drawbar_change(self, index: int, value: float) -> None:
         self._mixer.set_drawbar(index, value)
 
@@ -355,6 +461,9 @@ class MainWindow(QMainWindow):
 
     def _on_swell_change(self, index: int, value: float) -> None:
         self._mixer.set_swell(index, value)
+
+    def _on_stop_volume(self, stop_name: str, volume: float) -> None:
+        self._mixer.set_stop_volume(stop_name, volume)
 
     def _on_room_selected(self, preset_name: str) -> None:
         """Apply a room preset."""

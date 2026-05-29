@@ -33,6 +33,9 @@ class AudioEngine:
         # Mixer now returns stereo (num_frames, 2)
         stereo = self._mixer.render(frames)
 
+        # Capture frames for recording (if active)
+        self._mixer.recorder.add_frames(stereo)
+
         if stereo.ndim == 2 and stereo.shape[1] == 2:
             outdata[:] = stereo
         else:

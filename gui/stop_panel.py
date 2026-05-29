@@ -6,7 +6,7 @@ gets a distinct visual treatment as it's an effect, not a pipe rank.
 
 from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
-    QFrame,
+    QFrame, QSlider,
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 from stops.profiles import STOP_DEFS
@@ -52,10 +52,12 @@ class StopPanel(QGroupBox):
     """Grid of toggle buttons for organ stops, grouped by family."""
 
     stop_toggled = pyqtSignal(str, bool)
+    stop_volume_changed = pyqtSignal(str, float)
 
     def __init__(self, stop_names: list[str], active_stops: set[str]) -> None:
         super().__init__("Organ Stops")
         self._buttons: dict[str, QPushButton] = {}
+        self._vol_sliders: dict[str, QSlider] = {}
 
         outer = QVBoxLayout()
         outer.setSpacing(8)
@@ -144,13 +146,16 @@ class StopPanel(QGroupBox):
         """)
 
         grid = QGridLayout()
-        grid.setSpacing(5)
-        cols = 2
+        grid.setSpacing(4)
+        grid.setHorizontalSpacing(2)
 
         for idx, name in enumerate(stop_names):
             stop_def = STOP_DEFS.get(name)
             if stop_def is None:
                 continue
+
+            row = idx // 2
+            col = (idx % 2) * 2
 
             # Build label: show pitch info for mutations
             label = name
@@ -161,14 +166,41 @@ class StopPanel(QGroupBox):
             btn.setCheckable(True)
             btn.setChecked(name in active_stops)
             btn.setMinimumHeight(40)
-            btn.setMinimumWidth(110)
+            btn.setMinimumWidth(100)
             btn.setStyleSheet(self._button_style(name in active_stops))
             btn.setToolTip(self._stop_tooltip(name, stop_def))
             btn.clicked.connect(
                 lambda checked, n=name: self._on_toggle(n, checked)
             )
             self._buttons[name] = btn
-            grid.addWidget(btn, idx // cols, idx % cols)
+            grid.addWidget(btn, row, col)
+
+            # Tiny volume slider
+            slider = QSlider(Qt.Orientation.Vertical)
+            slider.setMinimum(0)
+            slider.setMaximum(10)
+            slider.setValue(10)  # default 1.0
+            slider.setFixedWidth(12)
+            slider.setFixedHeight(50)
+            slider.setStyleSheet("""
+                QSlider::groove:vertical {
+                    background: #2a1a0a;
+                    width: 6px;
+                    border-radius: 3px;
+                }
+                QSlider::handle:vertical {
+                    background: #d4a574;
+                    height: 10px;
+                    width: 10px;
+                    margin: -2px -2px;
+                    border-radius: 3px;
+                }
+            """)
+            slider.valueChanged.connect(
+                lambda v, n=name: self.stop_volume_changed.emit(n, v / 10.0)
+            )
+            self._vol_sliders[name] = slider
+            grid.addWidget(slider, row, col + 1)
 
         group.setLayout(grid)
         return group
