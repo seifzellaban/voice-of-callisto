@@ -1,6 +1,6 @@
 # Voice of Callisto
 
-A real-time pipe organ synthesizer inspired by the RAH Willis organ, built in Python. Generates sound entirely from additive synthesis with physically-modeled pipe characteristics — no samples, no soundfonts. Every note is computed in real-time from sine waves, harmonic profiles, and acoustic simulation.
+A real-time pipe organ synthesizer inspired by the RAH Willis organ, built in Python. Generates sound entirely from additive synthesis with physically-modeled pipe characteristics — no samples, no soundfonts. Every note is computed in real-time from sine waves, harmonic profiles, and acoustic simulation; based on the [Organum](https://github.com/seifzellaban/organum) engine.
 
 ---
 
