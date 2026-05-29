@@ -684,7 +684,7 @@ Keep drawbar panels as-is since they still work with the new stops.
 
 - [ ] **Step 5: Run app and check GUI loads**
 
-Run: `cd organum && uv run python main.py`
+Run: `uv run python main.py`
 Expected: Window loads with new stop names in Manual Flue, Manual Reed, and Pedal sections. Stops toggle correctly.
 
 - [ ] **Step 6: Run tests**

@@ -1,5 +1,5 @@
 [project]
-name = "organum"
+name = "voice-of-callisto"
 version = "0.1.0"
 description = "Real-time pipe organ synthesizer with additive synthesis"
 readme = "README.md"
