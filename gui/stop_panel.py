@@ -1,12 +1,11 @@
 """Stop panel — toggle buttons for organ stops with fighter-jet aesthetics.
 
-Stops are organized into functional groups (families). The Tremulant
-gets a distinct visual treatment as it's an effect, not a pipe rank.
+Stops are organized into functional groups (families).
 """
 
 from PyQt6.QtWidgets import (
     QGroupBox, QGridLayout, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
-    QFrame, QSlider,
+    QSlider,
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 from stops.profiles import STOP_DEFS
@@ -73,33 +72,6 @@ class StopPanel(QGroupBox):
             families_row.addWidget(section)
 
         outer.addLayout(families_row)
-
-        # ── Separator ────────────────────────────────────────────────
-        sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("background-color: #5a4a3a; max-height: 1px;")
-        outer.addWidget(sep)
-
-        # ── Tremulant — special effect, distinct visual ──────────────
-        trem_row = QHBoxLayout()
-        trem_row.addStretch()
-
-        trem_btn = QPushButton("⚡  TREMULANT  ⚡")
-        trem_btn.setCheckable(True)
-        trem_btn.setChecked("Tremulant" in active_stops)
-        trem_btn.setMinimumHeight(38)
-        trem_btn.setMinimumWidth(220)
-        trem_btn.setStyleSheet(
-            self._tremulant_style("Tremulant" in active_stops)
-        )
-        trem_btn.clicked.connect(
-            lambda checked: self._on_toggle("Tremulant", checked)
-        )
-        self._buttons["Tremulant"] = trem_btn
-        trem_row.addWidget(trem_btn)
-
-        trem_row.addStretch()
-        outer.addLayout(trem_row)
 
         self.setLayout(outer)
         self.setStyleSheet("""
@@ -261,62 +233,14 @@ class StopPanel(QGroupBox):
             QPushButton:hover { background-color: #4a3a2a; }
         """
 
-    def _tremulant_style(self, active: bool) -> str:
-        """Distinct visual for the Tremulant — fighter-jet switch feel."""
-        if active:
-            return """
-                QPushButton {
-                    background: qlineargradient(
-                        x1:0, y1:0, x2:1, y2:0,
-                        stop:0 #b22222, stop:0.5 #ff4500, stop:1 #b22222
-                    );
-                    color: #ffffff;
-                    border: 2px solid #ff6347;
-                    border-radius: 6px;
-                    font-size: 13px;
-                    font-weight: bold;
-                    padding: 8px 16px;
-                    letter-spacing: 2px;
-                }
-                QPushButton:hover {
-                    background: qlineargradient(
-                        x1:0, y1:0, x2:1, y2:0,
-                        stop:0 #cc3333, stop:0.5 #ff5722, stop:1 #cc3333
-                    );
-                }
-            """
-        return """
-            QPushButton {
-                background-color: #2a1a1a;
-                color: #884040;
-                border: 2px solid #5a2a2a;
-                border-radius: 6px;
-                font-size: 13px;
-                font-weight: bold;
-                padding: 8px 16px;
-                letter-spacing: 2px;
-            }
-            QPushButton:hover {
-                background-color: #3a2020;
-                color: #aa5050;
-                border-color: #7a3a3a;
-            }
-        """
-
     def update_stops(self, active_stops: set[str]) -> None:
         """Sync all button visual states with the given set of active stops."""
         for name, btn in self._buttons.items():
             is_active = name in active_stops
             btn.setChecked(is_active)
-            if name == "Tremulant":
-                btn.setStyleSheet(self._tremulant_style(is_active))
-            else:
-                btn.setStyleSheet(self._button_style(is_active))
+            btn.setStyleSheet(self._button_style(is_active))
 
     def _on_toggle(self, name: str, checked: bool) -> None:
         btn = self._buttons[name]
-        if name == "Tremulant":
-            btn.setStyleSheet(self._tremulant_style(checked))
-        else:
-            btn.setStyleSheet(self._button_style(checked))
+        btn.setStyleSheet(self._button_style(checked))
         self.stop_toggled.emit(name, checked)

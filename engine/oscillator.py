@@ -59,10 +59,17 @@ def _make_reed(max_harmonics: int = 19) -> np.ndarray:
 
 
 def _make_string(max_harmonics: int = 15) -> np.ndarray:
-    """String / viol — moderate fundamental, strong upper partials."""
+    """String / viol — strong fundamental, lean mids, singing edge.
+
+    Uses a 1/k^0.8 decay for body with slight odd-harmonic emphasis
+    for the characteristic string bite. Avoids the thin/buzzy trap
+    of too-weak fundamentals.
+    """
     w = np.zeros(TABLE_SIZE, dtype=np.float64)
     for k in range(1, min(max_harmonics + 1, 16)):
-        amp = (k / 3.0) * np.exp(-0.3 * k)
+        decay = 1.0 / (k ** 0.8)
+        odd_bump = 1.15 if (k % 2 == 1) else 0.85
+        amp = decay * odd_bump
         w += amp * np.sin(2 * np.pi * k * _t)
     if np.max(np.abs(w)) > 0:
         w /= np.max(np.abs(w))

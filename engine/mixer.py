@@ -408,15 +408,15 @@ class Mixer:
         #     0.25, # 1'
         # ]
         self._drawbar_values: list[float] = [
-            0.65,
+            0.85,
             1.0,
-            0.45,
-            0.80,
+            0.55,
+            0.85,
+            0.40,
+            0.60,
             0.30,
-            0.50,
             0.20,
             0.15,
-            0.10,
         ]
 
         self._active_stops: dict[str, HarmonicProfile] = {

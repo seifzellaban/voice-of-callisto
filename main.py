@@ -22,7 +22,7 @@ def main() -> None:
     app.setStyle("Fusion")
 
     window = MainWindow(mixer, midi_player)
-    window.show()
+    window.showMaximized()
 
     try:
         exit_code = app.exec()

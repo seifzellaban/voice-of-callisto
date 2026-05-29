@@ -206,15 +206,15 @@ class OrganVoice:
             osc_a = self._oscillators_a[i]
             osc_b = self._oscillators_b[i]
             
-            # Gentle bass weight and subtle treble clarity — defined, not muffled
+            # Grand bass weight and roaring treble presence — RAH Willis character
             if osc_a is not None:
                 freq = osc_a._frequency
-                if freq < 200.0:
-                    normalised = (200.0 - freq) / 200.0
-                    bass_boost = 1.0 + 1.2 * normalised
+                if freq < 300.0:
+                    normalised = (300.0 - freq) / 300.0
+                    bass_boost = 1.0 + 2.8 * normalised
                     amp *= bass_boost
                 elif freq > 1000.0:
-                    high_vol = max(0.60, 1.0 - 0.35 * ((freq - 1000.0) / (freq + 1000.0)))
+                    high_vol = max(0.70, 1.0 - 0.20 * ((freq - 1000.0) / (freq + 1000.0)))
                     amp *= high_vol
 
             if swell_bands is not None:

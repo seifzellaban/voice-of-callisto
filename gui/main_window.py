@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -129,6 +130,26 @@ class MainWindow(QMainWindow):
         """)
 
         central = QWidget()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(central)
+        scroll.setStyleSheet("""
+            QScrollArea { border: none; background-color: #1e1208; }
+            QScrollArea > QWidget > QWidget { background-color: #1e1208; }
+            QScrollBar:vertical {
+                background: #2a1a0a; width: 10px; border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #5a4a3a; border-radius: 4px; min-height: 30px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0; background: none;
+            }
+        """)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setCentralWidget(scroll)
+
         layout = QVBoxLayout()
         layout.setSpacing(10)
         layout.setContentsMargins(16, 10, 16, 14)
@@ -220,6 +241,44 @@ class MainWindow(QMainWindow):
         """)
         self._sustain_btn.toggled.connect(self._on_sustain_toggle)
         util_row.addWidget(self._sustain_btn)
+
+        # Tremulant toggle
+        self._trem_btn = QPushButton("⚡ TREMULANT ⚡")
+        self._trem_btn.setCheckable(True)
+        self._trem_btn.setChecked("Tremulant" in mixer.active_stop_names)
+        self._trem_btn.setMinimumWidth(120)
+        self._trem_btn.setMinimumHeight(32)
+        self._trem_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2a1a1a;
+                color: #884040;
+                border: 2px solid #5a2a2a;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: bold;
+                padding: 4px 10px;
+                letter-spacing: 1px;
+            }
+            QPushButton:checked {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #b22222, stop:0.5 #ff4500, stop:1 #b22222
+                );
+                color: #ffffff;
+                border: 2px solid #ff6347;
+            }
+            QPushButton:hover {
+                background-color: #3a2020;
+            }
+            QPushButton:checked:hover {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #cc3333, stop:0.5 #ff5722, stop:1 #cc3333
+                );
+            }
+        """)
+        self._trem_btn.toggled.connect(lambda checked: self._mixer.toggle_stop("Tremulant"))
+        util_row.addWidget(self._trem_btn)
 
         # Transpose controls
         transp_label = QLabel("Transpose:")
@@ -321,7 +380,6 @@ class MainWindow(QMainWindow):
         layout.addStretch()
 
         central.setLayout(layout)
-        self.setCentralWidget(central)
 
         # ── Disable focus on ALL widgets except the keyboard ────────
         # This prevents buttons, sliders, etc. from stealing keyboard
@@ -355,12 +413,18 @@ class MainWindow(QMainWindow):
         bypassing Qt's normal focus/accessibility system entirely.
         """
         if event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
-            key_event = event  # It's already a QKeyEvent
+            key_event = event
+            if key_event.key() == Qt.Key.Key_F11:
+                if self.isFullScreen():
+                    self.showMaximized()
+                else:
+                    self.showFullScreen()
+                return True
             if event.type() == QEvent.Type.KeyPress:
                 self._keyboard.keyPressEvent(key_event)
             else:
                 self._keyboard.keyReleaseEvent(key_event)
-            return True  # Consumed — no widget sees it
+            return True
 
         # For ShortcutOverride events (Qt trying to match shortcuts):
         # accept them to prevent Qt from consuming the key
