@@ -115,14 +115,14 @@ def _disable_focus_recursive(widget: QWidget) -> None:
 
 
 class MainWindow(QMainWindow):
-    """Top-level window for the Organum pipe organ synthesizer."""
+    """Top-level window for the Voice of Callisto pipe organ synthesizer."""
 
     def __init__(self, mixer: Mixer, midi_player: MidiPlayer) -> None:
         super().__init__()
         self._mixer = mixer
         self._midi_player = midi_player
 
-        self.setWindowTitle("Organum — Pipe Organ Synthesizer")
+        self.setWindowTitle("Voice of Callisto — Pipe Organ Synthesizer")
         self.setMinimumWidth(960)
         self.setStyleSheet("""
             QMainWindow { background-color: #1e1208; }
@@ -177,51 +177,44 @@ class MainWindow(QMainWindow):
         self._stop_panel.stop_volume_changed.connect(self._on_stop_volume)
         layout.addWidget(self._stop_panel)
 
-        # ── Drawbar section (3 inner rows) ───────────────────────────
-        drawbar_section = QVBoxLayout()
-        drawbar_section.setSpacing(6)
+        # ── Row 2: Drawbars (left) + Controls (right) ────────────────
+        row2 = QHBoxLayout()
+        row2.setSpacing(16)
+        row2.addStretch()
 
-        # 2a: Presets | Drawbars | Swell | Room
-        row2a = QHBoxLayout()
-        row2a.addStretch()
-
+        # Left: Presets | Drawbars | Swell | Room
+        left = QHBoxLayout()
         self._drawbar_preset_panel = DrawbarPresetPanel()
         self._drawbar_preset_panel.preset_selected.connect(self._on_drawbar_preset)
-        row2a.addWidget(self._drawbar_preset_panel)
-
+        left.addWidget(self._drawbar_preset_panel)
         self._drawbar_panel = DrawbarPanel(DRAWBAR_LABELS, mixer.drawbar_values)
         self._drawbar_panel.drawbar_changed.connect(self._on_drawbar_change)
-        row2a.addWidget(self._drawbar_panel)
-
+        left.addWidget(self._drawbar_panel)
         self._swell_panel = SwellPanel(mixer.swell_values)
         self._swell_panel.swell_changed.connect(self._on_swell_change)
-        row2a.addWidget(self._swell_panel)
-
+        left.addWidget(self._swell_panel)
         self._room_panel = RoomPresetPanel(
             list(ROOM_PRESETS.keys()),
             mixer.current_room_preset,
         )
         self._room_panel.room_selected.connect(self._on_room_selected)
-        row2a.addWidget(self._room_panel)
+        left.addWidget(self._room_panel)
+        row2.addLayout(left)
 
-        row2a.addStretch()
-        drawbar_section.addLayout(row2a)
-
-        # 2b: MIDI player (full width)
-        row2b = QHBoxLayout()
-        row2b.addStretch()
+        # Right: MIDI (top) + rest (bottom)
+        right = QVBoxLayout()
+        right.setSpacing(6)
+        midi_row = QHBoxLayout()
+        midi_row.addStretch()
         self._midi_panel = MidiPlayerPanel(midi_player)
-        row2b.addWidget(self._midi_panel)
-        row2b.addStretch()
-        drawbar_section.addLayout(row2b)
+        midi_row.addWidget(self._midi_panel)
+        midi_row.addStretch()
+        right.addLayout(midi_row)
 
-        # 2c: Record | Sustain | Trem | Transpose | Tuning
-        row2c = QHBoxLayout()
-        row2c.addStretch()
-
+        rest_row = QHBoxLayout()
+        rest_row.addStretch()
         self._recorder_panel = RecorderPanel(mixer.recorder)
-        row2c.addWidget(self._recorder_panel)
-
+        rest_row.addWidget(self._recorder_panel)
         self._sustain_btn = QPushButton("Sustain")
         self._sustain_btn.setCheckable(True)
         self._sustain_btn.setChecked(mixer.is_sustain_active)
@@ -235,8 +228,7 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background-color: #3a2020; }
         """)
         self._sustain_btn.toggled.connect(self._on_sustain_toggle)
-        row2c.addWidget(self._sustain_btn)
-
+        rest_row.addWidget(self._sustain_btn)
         self._trem_btn = QPushButton("⚡ TREMULANT ⚡")
         self._trem_btn.setCheckable(True)
         self._trem_btn.setChecked("Tremulant" in mixer.active_stop_names)
@@ -256,11 +248,10 @@ class MainWindow(QMainWindow):
                     stop:0 #cc3333, stop:0.5 #ff5722, stop:1 #cc3333); }
         """)
         self._trem_btn.toggled.connect(lambda checked: self._mixer.toggle_stop("Tremulant"))
-        row2c.addWidget(self._trem_btn)
-
+        rest_row.addWidget(self._trem_btn)
         transp_label = QLabel("Transpose:")
         transp_label.setStyleSheet("color: #c0b0a0; font-size: 12px; font-weight: bold;")
-        row2c.addWidget(transp_label)
+        rest_row.addWidget(transp_label)
         self._transp_down = QPushButton("−")
         self._transp_down.setFixedSize(28, 28)
         self._transp_down.setStyleSheet("""
@@ -269,12 +260,12 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background: #4a3a2a; }
         """)
         self._transp_down.clicked.connect(self._on_transpose_down)
-        row2c.addWidget(self._transp_down)
+        rest_row.addWidget(self._transp_down)
         self._transp_label = QLabel("0")
         self._transp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._transp_label.setFixedWidth(30)
         self._transp_label.setStyleSheet("color: #ffd700; font-size: 14px; font-weight: bold;")
-        row2c.addWidget(self._transp_label)
+        rest_row.addWidget(self._transp_label)
         self._transp_up = QPushButton("+")
         self._transp_up.setFixedSize(28, 28)
         self._transp_up.setStyleSheet("""
@@ -283,11 +274,10 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background: #4a3a2a; }
         """)
         self._transp_up.clicked.connect(self._on_transpose_up)
-        row2c.addWidget(self._transp_up)
-
+        rest_row.addWidget(self._transp_up)
         tuning_label = QLabel("Tuning:")
         tuning_label.setStyleSheet("color: #c0b0a0; font-size: 12px; font-weight: bold;")
-        row2c.addWidget(tuning_label)
+        rest_row.addWidget(tuning_label)
         self._tuning_combo = QComboBox()
         self._tuning_combo.addItems(list(TUNINGS.keys()))
         self._tuning_combo.setCurrentText(mixer.current_tuning)
@@ -299,29 +289,30 @@ class MainWindow(QMainWindow):
                 selection-background-color: #5a3a2a; }
         """)
         self._tuning_combo.currentTextChanged.connect(self._on_tuning_changed)
-        row2c.addWidget(self._tuning_combo)
+        rest_row.addWidget(self._tuning_combo)
+        rest_row.addStretch()
+        right.addLayout(rest_row)
 
-        row2c.addStretch()
-        drawbar_section.addLayout(row2c)
+        row2.addLayout(right)
+        row2.addStretch()
+        layout.addLayout(row2)
 
-        layout.addLayout(drawbar_section)
-
-        # ── Status row ───────────────────────────────────────────────
-        status_row = QHBoxLayout()
-        status_row.setSpacing(16)
+        # ── Row 3: Status ────────────────────────────────────────────
+        row4 = QHBoxLayout()
+        row4.setSpacing(16)
         self._octave_label = QLabel("")
         self._octave_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._octave_label.setStyleSheet("color: #ffd700; font-size: 12px; font-weight: bold;")
-        status_row.addWidget(self._octave_label, 1)
+        row4.addWidget(self._octave_label, 1)
         self._group_label = QLabel("Group: —")
         self._group_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._group_label.setStyleSheet("color: #77bbff; font-size: 12px; font-weight: bold;")
-        status_row.addWidget(self._group_label, 1)
+        row4.addWidget(self._group_label, 1)
         self._drawbar_select_label = QLabel("Drawbar: —")
         self._drawbar_select_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._drawbar_select_label.setStyleSheet("color: #ffaa55; font-size: 12px; font-weight: bold;")
-        status_row.addWidget(self._drawbar_select_label, 1)
-        layout.addLayout(status_row)
+        row4.addWidget(self._drawbar_select_label, 1)
+        layout.addLayout(row4)
 
         # ── Keyboard ───────────────────────────────────────────────
         kb_row = QHBoxLayout()
