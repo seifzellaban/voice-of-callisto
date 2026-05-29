@@ -65,14 +65,14 @@ def _disable_focus_recursive(widget: QWidget) -> None:
 
 
 class MainWindow(QMainWindow):
-    """Top-level window for the Organum pipe organ synthesizer."""
+    """Top-level window for the Voice of Callisto pipe organ synthesizer."""
 
     def __init__(self, mixer: Mixer, midi_player: MidiPlayer) -> None:
         super().__init__()
         self._mixer = mixer
         self._midi_player = midi_player
 
-        self.setWindowTitle("Organum — Pipe Organ Synthesizer")
+        self.setWindowTitle("Voice of Callisto — Pipe Organ Synthesizer")
         self.setMinimumWidth(960)
         self.setStyleSheet("""
             QMainWindow { background-color: #1e1208; }

@@ -1,4 +1,4 @@
-"""Organum — Pipe Organ Synthesizer
+"""Voice of Callisto — Pipe Organ Synthesizer
 
 Entry point: creates audio engine, mixer, MIDI player, and GUI.
 """

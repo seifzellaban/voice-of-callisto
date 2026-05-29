@@ -1,1 +1,1 @@
-# Organum — Pipe Organ Synthesis Engine
+# Voice of Callisto — Pipe Organ Synthesis Engine

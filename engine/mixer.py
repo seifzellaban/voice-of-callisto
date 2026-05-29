@@ -501,8 +501,16 @@ class Mixer:
                          or (sd.division == "pedal" and is_pedal))
                 ]
                 if normal_defs:
+                    # pitch_shift for non-mutation stops = pipe length ratio
+                    # (2.0 = 16' pipe = one octave below 8', 4.0 = 32' = two octaves below)
+                    max_shift = max(sd.pitch_shift for sd in normal_defs)
+                    if max_shift > 1.0:
+                        semi_shift = round(12 * math.log2(max_shift))
+                        shifted_note = note - semi_shift
+                    else:
+                        shifted_note = note
                     self._voices[note] = OrganVoice(
-                        note, self.sample_rate, stop_defs=normal_defs,
+                        shifted_note, self.sample_rate, stop_defs=normal_defs,
                         suppress_transients=rapid_restrike,
                     )
 
