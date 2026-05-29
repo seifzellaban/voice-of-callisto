@@ -177,26 +177,22 @@ class MainWindow(QMainWindow):
         self._stop_panel.stop_volume_changed.connect(self._on_stop_volume)
         layout.addWidget(self._stop_panel)
 
-        # ── Drawbar presets + Drawbars + Room presets ────────────────
+        # ── Row 1: Drawbar / Room controls ───────────────────────────
         drawbar_row = QHBoxLayout()
         drawbar_row.addStretch()
 
-        # Drawbar presets — left of drawbars
         self._drawbar_preset_panel = DrawbarPresetPanel()
         self._drawbar_preset_panel.preset_selected.connect(self._on_drawbar_preset)
         drawbar_row.addWidget(self._drawbar_preset_panel)
 
-        # Drawbars (center)
         self._drawbar_panel = DrawbarPanel(DRAWBAR_LABELS, mixer.drawbar_values)
         self._drawbar_panel.drawbar_changed.connect(self._on_drawbar_change)
         drawbar_row.addWidget(self._drawbar_panel)
 
-        # Swell EQ — right of drawbars
         self._swell_panel = SwellPanel(mixer.swell_values)
         self._swell_panel.swell_changed.connect(self._on_swell_change)
         drawbar_row.addWidget(self._swell_panel)
 
-        # Room presets — right of drawbars
         self._room_panel = RoomPresetPanel(
             list(ROOM_PRESETS.keys()),
             mixer.current_room_preset,
@@ -207,160 +203,117 @@ class MainWindow(QMainWindow):
         drawbar_row.addStretch()
         layout.addLayout(drawbar_row)
 
-        # ── MIDI Player ─────────────────────────────────────────────
+        # ── Row 2: MIDI + Status | Recorder | Utility controls ──────
+        ctrl_row = QHBoxLayout()
+        ctrl_row.addStretch()
+
+        midi_box = QVBoxLayout()
+        midi_box.setSpacing(4)
         self._midi_panel = MidiPlayerPanel(midi_player)
-        layout.addWidget(self._midi_panel)
+        midi_box.addWidget(self._midi_panel)
 
-        # ── Recorder ─────────────────────────────────────────────────
+        status_row = QHBoxLayout()
+        status_row.setSpacing(16)
+        self._octave_label = QLabel("")
+        self._octave_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._octave_label.setStyleSheet("color: #ffd700; font-size: 12px; font-weight: bold;")
+        status_row.addWidget(self._octave_label, 1)
+        self._group_label = QLabel("Group: —")
+        self._group_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._group_label.setStyleSheet("color: #77bbff; font-size: 12px; font-weight: bold;")
+        status_row.addWidget(self._group_label, 1)
+        self._drawbar_select_label = QLabel("Drawbar: —")
+        self._drawbar_select_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._drawbar_select_label.setStyleSheet("color: #ffaa55; font-size: 12px; font-weight: bold;")
+        status_row.addWidget(self._drawbar_select_label, 1)
+        midi_box.addLayout(status_row)
+
+        ctrl_row.addLayout(midi_box)
+
         self._recorder_panel = RecorderPanel(mixer.recorder)
-        layout.addWidget(self._recorder_panel)
+        ctrl_row.addWidget(self._recorder_panel)
 
-        # ── Utility row: sustain + transpose + tuning ───────────────
-        util_row = QHBoxLayout()
-        util_row.setSpacing(16)
-
-        # Sustain toggle
         self._sustain_btn = QPushButton("Sustain")
         self._sustain_btn.setCheckable(True)
         self._sustain_btn.setChecked(mixer.is_sustain_active)
         self._sustain_btn.setMinimumWidth(80)
         self._sustain_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2a1a1a;
-                color: #884040;
-                border: 2px solid #5a2a2a;
-                border-radius: 6px;
-                font-size: 12px; font-weight: bold; padding: 6px 12px;
-            }
-            QPushButton:checked {
-                background-color: #8b2222;
-                color: #ffffff;
-                border: 2px solid #ff6347;
-            }
+            QPushButton { background-color: #2a1a1a; color: #884040;
+                border: 2px solid #5a2a2a; border-radius: 6px;
+                font-size: 12px; font-weight: bold; padding: 6px 12px; }
+            QPushButton:checked { background-color: #8b2222; color: #ffffff;
+                border: 2px solid #ff6347; }
             QPushButton:hover { background-color: #3a2020; }
         """)
         self._sustain_btn.toggled.connect(self._on_sustain_toggle)
-        util_row.addWidget(self._sustain_btn)
+        ctrl_row.addWidget(self._sustain_btn)
 
-        # Tremulant toggle
         self._trem_btn = QPushButton("⚡ TREMULANT ⚡")
         self._trem_btn.setCheckable(True)
         self._trem_btn.setChecked("Tremulant" in mixer.active_stop_names)
         self._trem_btn.setMinimumWidth(120)
         self._trem_btn.setMinimumHeight(32)
         self._trem_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2a1a1a;
-                color: #884040;
-                border: 2px solid #5a2a2a;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: bold;
-                padding: 4px 10px;
-                letter-spacing: 1px;
-            }
+            QPushButton { background-color: #2a1a1a; color: #884040;
+                border: 2px solid #5a2a2a; border-radius: 6px;
+                font-size: 12px; font-weight: bold; padding: 4px 10px; letter-spacing: 1px; }
             QPushButton:checked {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #b22222, stop:0.5 #ff4500, stop:1 #b22222
-                );
-                color: #ffffff;
-                border: 2px solid #ff6347;
-            }
-            QPushButton:hover {
-                background-color: #3a2020;
-            }
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #b22222, stop:0.5 #ff4500, stop:1 #b22222);
+                color: #ffffff; border: 2px solid #ff6347; }
+            QPushButton:hover { background-color: #3a2020; }
             QPushButton:checked:hover {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #cc3333, stop:0.5 #ff5722, stop:1 #cc3333
-                );
-            }
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #cc3333, stop:0.5 #ff5722, stop:1 #cc3333); }
         """)
         self._trem_btn.toggled.connect(lambda checked: self._mixer.toggle_stop("Tremulant"))
-        util_row.addWidget(self._trem_btn)
+        ctrl_row.addWidget(self._trem_btn)
 
-        # Transpose controls
         transp_label = QLabel("Transpose:")
         transp_label.setStyleSheet("color: #c0b0a0; font-size: 12px; font-weight: bold;")
-        util_row.addWidget(transp_label)
-
+        ctrl_row.addWidget(transp_label)
         self._transp_down = QPushButton("−")
         self._transp_down.setFixedSize(28, 28)
         self._transp_down.setStyleSheet("""
             QPushButton { background: #3a2a1a; color: #c0b0a0; border: 1px solid #5a4a3a;
-                          border-radius: 4px; font-size: 16px; font-weight: bold; }
+                border-radius: 4px; font-size: 16px; font-weight: bold; }
             QPushButton:hover { background: #4a3a2a; }
         """)
         self._transp_down.clicked.connect(self._on_transpose_down)
-        util_row.addWidget(self._transp_down)
-
+        ctrl_row.addWidget(self._transp_down)
         self._transp_label = QLabel("0")
         self._transp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._transp_label.setFixedWidth(30)
         self._transp_label.setStyleSheet("color: #ffd700; font-size: 14px; font-weight: bold;")
-        util_row.addWidget(self._transp_label)
-
+        ctrl_row.addWidget(self._transp_label)
         self._transp_up = QPushButton("+")
         self._transp_up.setFixedSize(28, 28)
         self._transp_up.setStyleSheet("""
             QPushButton { background: #3a2a1a; color: #c0b0a0; border: 1px solid #5a4a3a;
-                          border-radius: 4px; font-size: 16px; font-weight: bold; }
+                border-radius: 4px; font-size: 16px; font-weight: bold; }
             QPushButton:hover { background: #4a3a2a; }
         """)
         self._transp_up.clicked.connect(self._on_transpose_up)
-        util_row.addWidget(self._transp_up)
+        ctrl_row.addWidget(self._transp_up)
 
-        # Tuning selector
         tuning_label = QLabel("Tuning:")
         tuning_label.setStyleSheet("color: #c0b0a0; font-size: 12px; font-weight: bold;")
-        util_row.addWidget(tuning_label)
-
+        ctrl_row.addWidget(tuning_label)
         self._tuning_combo = QComboBox()
         self._tuning_combo.addItems(list(TUNINGS.keys()))
         self._tuning_combo.setCurrentText(mixer.current_tuning)
         self._tuning_combo.setStyleSheet("""
-            QComboBox {
-                background: #3a2a1a; color: #e0d4c0; border: 1px solid #5a4a3a;
-                border-radius: 4px; padding: 4px 8px; font-size: 12px;
-            }
+            QComboBox { background: #3a2a1a; color: #e0d4c0; border: 1px solid #5a4a3a;
+                border-radius: 4px; padding: 4px 8px; font-size: 12px; }
             QComboBox::drop-down { border: none; }
-            QComboBox QAbstractItemView {
-                background: #2a1a0a; color: #e0d4c0; selection-background-color: #5a3a2a;
-            }
+            QComboBox QAbstractItemView { background: #2a1a0a; color: #e0d4c0;
+                selection-background-color: #5a3a2a; }
         """)
         self._tuning_combo.currentTextChanged.connect(self._on_tuning_changed)
-        util_row.addWidget(self._tuning_combo)
+        ctrl_row.addWidget(self._tuning_combo)
 
-        util_row.addStretch()
-        layout.addLayout(util_row)
-
-        # ── Status row: octave + stop group + drawbar info ──────────
-        status_row = QHBoxLayout()
-        status_row.setSpacing(20)
-
-        self._octave_label = QLabel("")
-        self._octave_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._octave_label.setStyleSheet(
-            "color: #ffd700; font-size: 13px; font-weight: bold;"
-        )
-        status_row.addWidget(self._octave_label, 1)
-
-        self._group_label = QLabel("Group: —")
-        self._group_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._group_label.setStyleSheet(
-            "color: #77bbff; font-size: 12px; font-weight: bold;"
-        )
-        status_row.addWidget(self._group_label, 1)
-
-        self._drawbar_select_label = QLabel("Drawbar: —")
-        self._drawbar_select_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._drawbar_select_label.setStyleSheet(
-            "color: #ffaa55; font-size: 12px; font-weight: bold;"
-        )
-        status_row.addWidget(self._drawbar_select_label, 1)
-
-        layout.addLayout(status_row)
+        ctrl_row.addStretch()
+        layout.addLayout(ctrl_row)
 
         # ── Keyboard ───────────────────────────────────────────────
         kb_row = QHBoxLayout()
